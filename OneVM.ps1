@@ -1,5 +1,3 @@
-﻿Switch-AzureMode AzureResourceManager
-
 $testName = "mvaiaasv2onevm"
 
 $resourceGroupName = $testName
@@ -12,55 +10,48 @@ $version = "latest"
 
 $subnetName = "Subnet-1"
 
-New-AzureResourceGroup -Name $resourceGroupName -Location $location
+New-AzureRMResourceGroup -Name $resourceGroupName -Location $location
 
-
-New-AzureStorageAccount -ResourceGroupName $resourceGroupName `
+New-AzureRMStorageAccount -ResourceGroupName $resourceGroupName `
    -Name $testName -Location $location -Type Standard_LRS
 
-
-$subnet = New-AzureVirtualNetworkSubnetConfig -Name $subnetName `
+$subnet = New-AzureRMVirtualNetworkSubnetConfig -Name $subnetName `
    -AddressPrefix "10.0.64.0/24"
 
-$vnet = New-AzureVirtualNetwork -Name "VNET" `
+$vnet = New-AzureRMVirtualNetwork -Name "VNET" `
    -ResourceGroupName $resourceGroupName `
    -Location $location -AddressPrefix "10.0.0.0/16" -Subnet $subnet
 
+$subnet = Get-AzureRMVirtualNetworkSubnetConfig -Name $subnetName -VirtualNetwork $vnet
 
-$subnet = Get-AzureVirtualNetworkSubnetConfig -Name $subnetName -VirtualNetwork $vnet
-
-
-$pip = New-AzurePublicIpAddress -ResourceGroupName $resourceGroupName -Name "vip1" `
+$pip = New-AzureRMPublicIpAddress -ResourceGroupName $resourceGroupName -Name "vip1" `
    -Location $location -AllocationMethod Dynamic -DomainNameLabel $testName
 
-
-$nic = New-AzureNetworkInterface -ResourceGroupName $resourceGroupName `
+$nic = New-AzureRMNetworkInterface -ResourceGroupName $resourceGroupName `
    -Name "nic1" -Subnet $subnet -Location $location -PublicIpAddress $pip -PrivateIpAddress "10.0.64.4" 
 
-New-AzureAvailabilitySet -ResourceGroupName $resourceGroupName `
+New-AzureRMAvailabilitySet -ResourceGroupName $resourceGroupName `
    -Name "AVSet" -Location $location
 
-$avset = Get-AzureAvailabilitySet -ResourceGroupName $resourceGroupName -Name "AVSet"
+$avset = Get-AzureRMAvailabilitySet -ResourceGroupName $resourceGroupName -Name "AVSet"
 
 $cred = Get-Credential
 
-$vmConfig = New-AzureVMConfig -VMName "$testName-w1" -VMSize "Standard_A1" `
+$vmConfig = New-AzureRMVMConfig -VMName "$testName-w1" -VMSize "Standard_A1" `
    -AvailabilitySetId $avSet.Id | 
 
-    Set-AzureVMOperatingSystem -Windows -ComputerName "contoso-w1" `
+    Set-AzureRMVMOperatingSystem -Windows -ComputerName "contoso-w1" `
        -Credential $cred -ProvisionVMAgent -EnableAutoUpdate  | 
 
-    Set-AzureVMSourceImage -PublisherName $publisher -Offer $offer -Skus $sku `
+    Set-AzureRMVMSourceImage -PublisherName $publisher -Offer $offer -Skus $sku `
        -Version $version | 
 
-    Set-AzureVMOSDisk -Name "$testName-w1" -VhdUri "https://$testName.blob.core.windows.net/vhds/$testName-w1-os.vhd" `
+    Set-AzureRMVMOSDisk -Name "$testName-w1" -VhdUri "https://$testName.blob.core.windows.net/vhds/$testName-w1-os.vhd" `
        -Caching ReadWrite -CreateOption fromImage  | 
 
-    Add-AzureVMNetworkInterface -Id $nic.Id
+    Add-AzureRMVMNetworkInterface -Id $nic.Id
 
+New-AzureRMVM -ResourceGroupName $resourceGroupName -Location $location `
+   -VM $vmConfig 
 
-New-AzureVM -ResourceGroupName $resourceGroupName -Location $location `
-   -VM $vmConfig -Name "$testName-w1"
-
-(Get-AzurePublicIpAddress -ResourceGroupName $resourceGroupName).IpAddress
-
+(Get-AzureRMPublicIpAddress -ResourceGroupName $resourceGroupName).IpAddress
